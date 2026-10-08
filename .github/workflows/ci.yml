@@ -1,0 +1,150 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install Flutter test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libgtk-3-dev ninja-build
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.47.5
+          cache: true
+
+      - name: Run analysis and tests
+        run: ./tool/check.sh
+
+      - name: Check publish package
+        if: ${{ hashFiles('CHANGELOG.md') != '' }}
+        run: dart pub publish --dry-run
+
+  consumer:
+    name: Consumer / ${{ matrix.platform }}
+    runs-on: ${{ matrix.platform == 'android' && 'ubuntu-24.04' || 'xcode-27' }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [android, ios]
+    env:
+      DEVELOPER_DIR: ${{ matrix.platform == 'ios' && '/Applications/Xcode_27.0.app/Contents/Developer' || '' }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Java
+        if: ${{ matrix.platform == 'android' }}
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.47.5
+          cache: true
+
+      - name: Enable Swift Package Manager
+        if: ${{ matrix.platform == 'ios' }}
+        run: flutter config --enable-swift-package-manager
+
+      - name: Resolve hosted dependencies
+        run: ./tool/ci/resolve_dependencies.sh
+
+      - name: Build example
+        run: ./tool/ci/build_example.sh "${{ matrix.platform }}"
+
+  macos_integration:
+    name: macOS integration
+    runs-on: xcode-27
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.47.5
+          cache: true
+
+      - name: Enable Swift Package Manager
+        run: flutter config --enable-swift-package-manager
+
+      - name: Resolve hosted dependencies
+        run: ./tool/ci/resolve_dependencies.sh
+
+      - name: Test native camera and overlay integration
+        shell: bash
+        run: |
+          mkdir -p build/ci
+          (
+            cd example
+            flutter test integration_test/bridge_test.dart -d macos --no-pub
+          ) 2>&1 | tee build/ci/macos-integration.log
+
+      - name: Upload macOS integration report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: macos-integration-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/ci/macos-integration.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  required:
+    name: Required
+    if: ${{ always() }}
+    needs:
+      - quality
+      - consumer
+      - macos_integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check required jobs
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          CONSUMER_RESULT: ${{ needs.consumer.result }}
+          MACOS_INTEGRATION_RESULT: ${{ needs.macos_integration.result }}
+        run: |
+          test "$QUALITY_RESULT" = success
+          test "$CONSUMER_RESULT" = success
+          test "$MACOS_INTEGRATION_RESULT" = success
