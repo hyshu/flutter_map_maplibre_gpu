@@ -32,5 +32,9 @@ migrate_working_dir/
 
 # Dependency overrides and generated files.
 pubspec_overrides.yaml
+pubspec.lock
 build/
 coverage/
+
+AGENTS.md
+.github/
