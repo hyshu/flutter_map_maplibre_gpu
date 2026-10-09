@@ -1,6 +1,15 @@
 name: flutter_map_maplibre_gpu
+description: >-
+  MapLibre vector maps for flutter_map, with markers and routes that stay in sync
+  with the map. Rendered with Flutter GPU.
 version: 0.0.1
 repository: https://github.com/hyshu/flutter_map_maplibre_gpu
+homepage: https://github.com/hyshu/flutter_map_maplibre_gpu
+issue_tracker: https://github.com/hyshu/flutter_map_maplibre_gpu/issues
+topics:
+  - flutter-map
+  - maplibre
+  - mvt
 
 environment:
   sdk: ^3.13.0
