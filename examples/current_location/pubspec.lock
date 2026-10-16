@@ -352,10 +352,10 @@ packages:
     dependency: "direct main"
     description:
       name: maplibre_flutter_gpu
-      sha256: "130cd4dc95557dd9943c9a0fccfee9a5a1e60a815d207f74fd3e390f222ff43e"
+      sha256: c1cf20310f81116b4e89879bda97beabb6dcc64177cdbd34b5dffc8803a26354
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.1"
+    version: "0.2.0"
   matcher:
     dependency: transitive
     description:
