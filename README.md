@@ -74,6 +74,8 @@ To let MapLibre handle gestures, use the same adapter in
 `MapLibreMap.overlayBuilder` with `tiltGesturesEnabled: false` and
 `minMaxTiltPreference: MinMaxTiltPreference(0, 0)`.
 See the [example app](example/lib/main.dart) for an interactive world map.
+The [current-location example](examples/current_location/) adds a live location
+marker and a recenter button using Geolocator.
 
 ## A few limits
 

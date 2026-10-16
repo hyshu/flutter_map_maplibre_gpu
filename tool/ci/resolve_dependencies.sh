@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 cd "${PROJECT_ROOT}"
 
-for package_dir in . example; do
+for package_dir in . example examples/current_location; do
     if [[ -e "${package_dir}/pubspec_overrides.yaml" ]]; then
         echo "error: remove ${package_dir}/pubspec_overrides.yaml to use published dependencies" >&2
         exit 1
@@ -14,12 +14,14 @@ for package_dir in . example; do
 done
 
 flutter pub get --no-example
-(
-    cd example
-    flutter pub get --enforce-lockfile
-)
+for package_dir in example examples/current_location; do
+    (
+        cd "${package_dir}"
+        flutter pub get --enforce-lockfile
+    )
+done
 
-for lockfile in pubspec.lock example/pubspec.lock; do
+for lockfile in pubspec.lock example/pubspec.lock examples/current_location/pubspec.lock; do
     if ! awk '
         /^  maplibre_flutter_gpu:$/ { in_gpu = 1; next }
         in_gpu && /^  [^ ]/ { exit }

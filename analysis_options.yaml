@@ -4,3 +4,4 @@ analyzer:
   exclude:
     - build/**
     - example/build/**
+    - examples/**/build/**
