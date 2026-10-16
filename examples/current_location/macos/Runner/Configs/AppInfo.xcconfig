@@ -1,0 +1,3 @@
+PRODUCT_NAME = Current Location
+PRODUCT_BUNDLE_IDENTIFIER = dev.example.flutterMapCurrentLocation
+PRODUCT_COPYRIGHT = Copyright © 2026 dev.example. All rights reserved.
